@@ -1,8 +1,9 @@
-import Category from "../infrastructure/db/entities/category.js";
-import ValidationError from "../domain/errors/validation-error.js"
-import NotFoundError from "../domain/errors/not-found-error.js"
+import Category from "../infrastructure/db/entities/Category";
+import ValidationError from "../domain/errors/validation-error"
+import NotFoundError from "../domain/errors/not-found-error"
+import { Request, Response, NextFunction } from "express";
 
-const getAllCategories = async (req, res, next) => {
+const getAllCategories = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const categories = await Category.find();
         res.json(categories);
@@ -11,7 +12,7 @@ const getAllCategories = async (req, res, next) => {
     }
 };
 
-const createCategory = async (req, res, next) => {
+const createCategory = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const newCategory = req.body;
         if (!newCategory.name) {
@@ -24,7 +25,7 @@ const createCategory = async (req, res, next) => {
     }
 };
 
-const getCategoryById = async (req, res, next) => {
+const getCategoryById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const category = await Category.findById(req.params.id);
         if (!category) {
@@ -36,7 +37,7 @@ const getCategoryById = async (req, res, next) => {
     }
 };
 
-const deleteCategoryById = async (req, res, next) => {
+const deleteCategoryById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const category = await Category.findByIdAndDelete(req.params.id);
         if (!category) {
@@ -48,7 +49,7 @@ const deleteCategoryById = async (req, res, next) => {
     }
 };
 
-const updateCategoryById = async (req, res, next) => {
+const updateCategoryById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
             new: true,

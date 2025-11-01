@@ -1,8 +1,9 @@
-import Product from "../infrastructure/db/entities/product.js";
-import ValidationError from "../domain/errors/validation-error.js";
-import NotFoundError from "../domain/errors/not-found-error.js";
+import Product from "../infrastructure/db/entities/Product";
+import ValidationError from "../domain/errors/validation-error";
+import NotFoundError from "../domain/errors/not-found-error";
+import { Request, Response, NextFunction } from "express";
 
-const getAllProducts = async (req, res, next) => {
+const getAllProducts = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const categoryId = req.query.categoryId;
         if (categoryId) {
@@ -17,7 +18,7 @@ const getAllProducts = async (req, res, next) => {
     }
 };
 
-const createProduct = async (req, res, next) => {
+const createProduct = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const newProduct = req.body;
         if (!newProduct.name) {
@@ -33,7 +34,7 @@ const createProduct = async (req, res, next) => {
     }
 };
 
-const getProductById = async (req, res, next) => {
+const getProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findById(req.params.id).populate("reviews");
         if (!product) {
@@ -45,7 +46,7 @@ const getProductById = async (req, res, next) => {
     }
 };
 
-const updateProductById = async (req, res, next) => {
+const updateProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -59,7 +60,7 @@ const updateProductById = async (req, res, next) => {
     }
 };
 
-const deleteProductById = async (req, res, next) => {
+const deleteProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {

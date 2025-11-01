@@ -23,6 +23,11 @@ const productSchema = new mongoose.Schema(
             require: true,
         },
 
+        stock: {
+            type: String,
+            require: true,
+        },
+
         reviews: {
             type: [mongoose.Schema.Types.ObjectId],
             ref: "Review",

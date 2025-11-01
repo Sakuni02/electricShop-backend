@@ -1,5 +1,5 @@
 import express from "express";
-import isAuthenticated from "./middleware/authentication-middleware.js";
+import isAuthenticated from "./middleware/authentication-middleware";
 
 import {
     createCategory,
@@ -7,7 +7,7 @@ import {
     getAllCategories,
     getCategoryById,
     updateCategoryById,
-} from "../application/category.js";
+} from "../application/category";
 
 const categoryRouter = express.Router();
 
