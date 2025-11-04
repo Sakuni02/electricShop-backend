@@ -3,7 +3,7 @@ import ValidationError from "../domain/errors/validation-error";
 import NotFoundError from "../domain/errors/not-found-error";
 import { Request, Response, NextFunction } from "express";
 
-const getAllProducts = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const categoryId = req.query.categoryId;
         if (categoryId) {
@@ -18,7 +18,7 @@ const getAllProducts = async (err: Error, req: Request, res: Response, next: Nex
     }
 };
 
-const createProduct = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const createProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const newProduct = req.body;
         if (!newProduct.name) {
@@ -34,7 +34,7 @@ const createProduct = async (err: Error, req: Request, res: Response, next: Next
     }
 };
 
-const getProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const getProductById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findById(req.params.id).populate("reviews");
         if (!product) {
@@ -46,7 +46,7 @@ const getProductById = async (err: Error, req: Request, res: Response, next: Nex
     }
 };
 
-const updateProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const updateProductById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -60,7 +60,7 @@ const updateProductById = async (err: Error, req: Request, res: Response, next: 
     }
 };
 
-const deleteProductById = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const deleteProductById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {

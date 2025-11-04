@@ -1,13 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import UnauthorizedError from "../../domain/errors/unauthorized-error";
+import { getAuth } from "@clerk/express";
 
-const isAuthenticated = (err: Error, req: Request, res: Response, next: NextFunction) => {
-    const isUserLoggedIn = false;
-    if (!isUserLoggedIn) {
+const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (!req?.auth) {
         throw new UnauthorizedError("Unauthorized");
-    } else {
-        next();
     }
+
+    console.log(req.auth());
+    console.log(getAuth(req));
+    next();
 };
 
 export default isAuthenticated;

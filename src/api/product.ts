@@ -18,5 +18,3 @@ productRouter
     .delete(deleteProductById);
 
 export default productRouter;
-
-

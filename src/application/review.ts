@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Product from "../infrastructure/db/entities/Product";
 import Review from "../infrastructure/db/entities/Review"
-const createReview = async (err: Error, req: Request, res: Response, next: NextFunction) => {
+const createReview = async (req: Request, res: Response, next: NextFunction) => {
 
     try {
         const data = req.body;
