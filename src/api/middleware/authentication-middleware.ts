@@ -7,8 +7,6 @@ const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
         throw new UnauthorizedError("Unauthorized");
     }
 
-    console.log(req.auth());
-    console.log(getAuth(req));
     next();
 };
 
