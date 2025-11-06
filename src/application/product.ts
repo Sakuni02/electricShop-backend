@@ -1,7 +1,13 @@
 import Product from "../infrastructure/db/entities/Product";
 import ValidationError from "../domain/errors/validation-error";
 import NotFoundError from "../domain/errors/not-found-error";
+
 import { Request, Response, NextFunction } from "express";
+import { CreateProductDTO } from "../domain/dto/product";
+import { randomUUID } from "crypto";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import S3 from "../infrastructure/s3";
 
 const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -18,17 +24,19 @@ const getAllProducts = async (req: Request, res: Response, next: NextFunction) =
     }
 };
 
-const createProduct = async (req: Request, res: Response, next: NextFunction) => {
+const createProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     try {
-        const newProduct = req.body;
-        if (!newProduct.name) {
-            throw new ValidationError("Product name is required");
+        const result = CreateProductDTO.safeParse(req.body);
+        if (!result.success) {
+            throw new ValidationError(result.error.message);
         }
-        if (!newProduct.categoryId) {
-            throw new ValidationError("Category ID is required");
-        }
-        await Product.create(newProduct);
-        res.status(201).json(newProduct);
+
+        await Product.create(result.data);
+        res.status(201).send();
     } catch (error) {
         next(error);
     }
@@ -72,10 +80,43 @@ const deleteProductById = async (req: Request, res: Response, next: NextFunction
     }
 };
 
+
+const uploadProductImage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const body = req.body;
+        const { fileType } = body;
+
+        const id = randomUUID();
+
+        const url = await getSignedUrl(
+            S3,
+            new PutObjectCommand({
+                Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
+                Key: id,
+                ContentType: fileType,
+            }),
+            {
+                expiresIn: 60,
+            }
+        );
+
+        res.status(200)
+            .json({
+                url,
+                publicURL: `${process.env.CLOUDFLARE_PUBLIC_DOMAIN}/${id}`,
+            });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 export {
     createProduct,
     deleteProductById,
     getAllProducts,
     getProductById,
     updateProductById,
+    uploadProductImage,
+
 };
