@@ -6,6 +6,19 @@ const productSchema = new mongoose.Schema({
         ref: "Category",
         required: true,
     },
+
+    brandId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Brand",
+        required: true,
+    },
+
+    colorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Color",
+        required: true,
+    },
+
     name: {
         type: String,
         required: true,
@@ -22,12 +35,30 @@ const productSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    // reviews: {
+    //     type: [mongoose.Schema.Types.ObjectId],
+    //     ref: "Review",
+    //     default: [],
+    // },
+    description: {
+        type: String,
+        required: false,
+    },
+
+    specifications: [
+        {
+            key: { type: String, required: true },
+            value: { type: String, required: true },
+        },
+    ],
+
     reviews: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "Review",
         default: [],
     },
-});
+}, { timestamps: true });
+
 
 const Product = mongoose.model("Product", productSchema);
 

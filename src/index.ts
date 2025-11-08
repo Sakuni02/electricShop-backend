@@ -8,6 +8,8 @@ import globalErrorHandlingMiddleware from "./api/middleware/global-error-handlin
 import cors from "cors";
 import { orderRouter } from "./api/order";
 import { clerkMiddleware } from '@clerk/express'
+import brandRouter from "./api/brand";
+import colorRouter from "./api/color";
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use("/api/products", productRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/review", reviewRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/brands", brandRouter);
+app.use("/api/colors", colorRouter);
 
 app.use(globalErrorHandlingMiddleware);
 
