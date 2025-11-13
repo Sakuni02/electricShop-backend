@@ -6,6 +6,7 @@ import {
     updateProductById,
     deleteProductById,
     uploadProductImage,
+    getProductsByCategory,
 } from "../application/product";
 import isAuthenticated from "./middleware/authentication-middleware";
 import { isAdmin } from "./middleware/authorization-middleware";
@@ -26,5 +27,9 @@ productRouter
 productRouter
     .route("/images")
     .post(uploadProductImage);
+
+
+productRouter.route("/shop/:slug").get(getProductsByCategory);
+
 
 export default productRouter;

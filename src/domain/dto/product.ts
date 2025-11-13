@@ -5,7 +5,7 @@ const CreateProductDTO = z.object({
     brandId: z.string().min(1),
     colorId: z.string().min(1),
     name: z.string().min(1),
-    image: z.string().min(1),
+    images: z.array(z.string().min(1)),
     stock: z.number(),
     price: z.number().nonnegative(),
     description: z.string().optional(),
