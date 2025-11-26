@@ -9,6 +9,10 @@ const reviewSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    name: {
+        type: String,
+        required: true
+    }
 });
 
 const Review = mongoose.model("Review", reviewSchema);
