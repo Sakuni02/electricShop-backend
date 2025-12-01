@@ -1,7 +1,7 @@
 import Product from "../infrastructure/db/entities/Product";
 import ValidationError from "../domain/errors/validation-error";
 import NotFoundError from "../domain/errors/not-found-error";
-
+import stripe from "../infrastructure/stripe";
 import { Request, Response, NextFunction } from "express";
 import { CreateProductDTO } from "../domain/dto/product";
 import { randomUUID } from "crypto";
@@ -31,13 +31,31 @@ const createProduct = async (
     next: NextFunction
 ) => {
     try {
+        const data = req.body;
+
         const result = CreateProductDTO.safeParse(req.body);
         if (!result.success) {
             throw new ValidationError(result.error.message);
         }
 
-        await Product.create(result.data);
-        res.status(201).send();
+        //create product in stripe
+        const stripeProduct = await stripe.products.create({
+            name: data.name,
+            description: data.description || "",
+            default_price_data: {
+                currency: "usd",
+                unit_amount: data.price * 100,
+            },
+            images: data.images,
+        });
+
+        // Save product to MongoDB with stripePriceId auto-filled
+        const savedProduct = await Product.create({
+            ...result.data,
+            stripePriceId: stripeProduct.default_price,
+        });
+
+        res.status(201).json(savedProduct);
     } catch (error) {
         next(error);
     }

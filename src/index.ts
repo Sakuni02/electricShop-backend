@@ -10,6 +10,9 @@ import { orderRouter } from "./api/order";
 import { clerkMiddleware } from '@clerk/express'
 import brandRouter from "./api/brand";
 import colorRouter from "./api/color";
+import bodyParser from "body-parser";
+import { handleWebhook } from "./application/payment";
+import { paymentsRouter } from "./api/payment";
 
 const app = express();
 
@@ -26,6 +29,13 @@ app.use("/api/review", reviewRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/brands", brandRouter);
 app.use("/api/colors", colorRouter);
+app.use("/api/payments", paymentsRouter);
+
+app.post(
+    "api/stripe/webhook",
+    bodyParser.raw({ type: "application/json" }),
+    handleWebhook
+);
 
 app.use(globalErrorHandlingMiddleware);
 

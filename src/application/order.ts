@@ -3,20 +3,21 @@ import Address from "../infrastructure/db/entities/Address";
 import Order from "../infrastructure/db/entities/Order";
 import NotFoundError from "../domain/errors/not-found-error";
 import UnauthorizedError from "../domain/errors/unauthorized-error";
+import { getAuth } from "@clerk/express";
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const data = req.body;
-        const userId = "123";
+        const { userId } = getAuth(req);
 
         const address = await Address.create(data.shippingAddress);
-        await Order.create({
+        const order = await Order.create({
             addressId: address._id,
             items: data.orderItems,
             userId: userId,
         });
 
-        res.status(201).send();
+        res.status(201).json(order);
     } catch (error) {
         next(error);
     }
@@ -24,7 +25,7 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 
 const getOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = "123";
+        const { userId } = getAuth(req);
         const orderId = req.params.id;
         const order = await Order.findById(orderId);
         if (!order) {
@@ -43,7 +44,7 @@ const getOrder = async (req: Request, res: Response, next: NextFunction) => {
 
 const getUserOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = "123";
+        const { userId } = getAuth(req);
         const orders = await Order.find({ userId }).populate("addressId");
 
         if (!orders || orders.length === 0) {
