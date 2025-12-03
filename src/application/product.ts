@@ -14,10 +14,10 @@ const getAllProducts = async (req: Request, res: Response, next: NextFunction) =
     try {
         const categoryId = req.query.categoryId;
         if (categoryId) {
-            const products = await Product.find({ categoryId });
+            const products = await Product.find({ categoryId }).populate("reviews", "name rating");
             res.json(products);
         } else {
-            const products = await Product.find();
+            const products = await Product.find().populate("reviews", "name rating");;
             res.json(products);
         }
     } catch (error) {
@@ -100,37 +100,6 @@ const deleteProductById = async (req: Request, res: Response, next: NextFunction
 };
 
 
-// const uploadProductImage = async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//         const body = req.body;
-//         const { fileType } = body;
-
-//         const id = randomUUID();
-
-//         const url = await getSignedUrl(
-//             S3,
-//             new PutObjectCommand({
-//                 Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
-//                 Key: id,
-//                 ContentType: fileType,
-//             }),
-//             {
-//                 expiresIn: 60,
-//             }
-//         );
-
-//         res.status(200)
-//             .json({
-//                 url,
-//                 publicURL: `${process.env.CLOUDFLARE_PUBLIC_DOMAIN}/${id}`,
-//             });
-
-//     } catch (error) {
-//         next(error);
-//     }
-// };
-
-
 const uploadProductImage = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { fileTypes } = req.body; // Expect an array: ["image/png", "image/jpeg"]
@@ -170,6 +139,7 @@ const uploadProductImage = async (req: Request, res: Response, next: NextFunctio
 const getProductsByCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { slug } = req.params;
+        const { colorId, minPrice, maxPrice } = req.query;
 
         const category = await Category.findOne({ slug });
 
@@ -177,8 +147,25 @@ const getProductsByCategory = async (req: Request, res: Response, next: NextFunc
             throw new NotFoundError("Category not found");
         }
 
-        const products = await Product.find({ categoryId: category._id })
-            .populate("categoryId", "name slug");
+        const filter: any = {
+            categoryId: category._id,
+        };
+
+        // Color filter
+        if (colorId) {
+            filter.colorId = colorId;
+        }
+
+        // Price range filter
+        if (maxPrice) {
+            filter.price = filter.price || {};
+            filter.price.$lte = Number(maxPrice);
+        }
+
+
+        const products = await Product.find(filter)
+            .populate("categoryId", "name slug")
+            .populate("colorId", "name slug hex");
 
         res.status(200).json(products);
 
@@ -186,6 +173,7 @@ const getProductsByCategory = async (req: Request, res: Response, next: NextFunc
         next(error);
     }
 };
+
 
 export {
     createProduct,
