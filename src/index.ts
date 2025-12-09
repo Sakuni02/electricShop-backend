@@ -13,6 +13,7 @@ import colorRouter from "./api/color";
 import bodyParser from "body-parser";
 import { handleWebhook } from "./application/payment";
 import { paymentsRouter } from "./api/payment";
+import { cartRouter } from "./api/cart";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api/orders", orderRouter);
 app.use("/api/brands", brandRouter);
 app.use("/api/colors", colorRouter);
 app.use("/api/payments", paymentsRouter);
+app.use("/api/cart", cartRouter);
 
 app.post(
     "api/stripe/webhook",
