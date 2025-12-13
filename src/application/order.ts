@@ -4,6 +4,8 @@ import Order from "../infrastructure/db/entities/Order";
 import NotFoundError from "../domain/errors/not-found-error";
 import UnauthorizedError from "../domain/errors/unauthorized-error";
 import { getAuth } from "@clerk/express";
+import { email } from "zod";
+import { users } from "@clerk/clerk-sdk-node";
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -57,6 +59,44 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
         next(error);
 
     }
-}
+};
 
-export { createOrder, getOrder, getUserOrders };
+const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const orders = await Order.find().populate("addressId")
+            .populate("items.productId");
+        const ordersWithUser = await Promise.all(
+            orders.map(async (order) => {
+                let userInfo = { fullName: "N/A", email: "N/A" };
+                try {
+                    const user = await users.getUser(order.userId);
+                    userInfo = {
+                        fullName: `${user.firstName} ${user.lastName || ""}`,
+                        email: user.emailAddresses[0].emailAddress,
+                    };
+                } catch (err) {
+                    console.log(`Clerk user ${order.userId} not found`);
+
+                }
+
+                const addressInfo = order.addressId ? {
+                    line_1: order.addressId.line_1,
+                    line_2: order.addressId.line_2 || "",
+                    city: order.addressId.city,
+                    phone: order.addressId.phone,
+                } : null
+
+                return {
+                    ...order.toObject(), user: userInfo,
+                    address: addressInfo,
+                };
+
+            })
+        );
+        res.status(200).json(ordersWithUser);
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+export { createOrder, getOrder, getUserOrders, getAllOrders };

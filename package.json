@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-     "build": "npm install && tsc",
+    "build": "npm install && tsc",
     "start": "node ./dist/index.js",
     "fix-stripe": "ts-node src/infrastructure/db/fixStripeIds.ts"
   },
@@ -14,6 +14,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.925.0",
     "@aws-sdk/s3-request-presigner": "^3.925.0",
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/express": "^1.7.43",
     "@types/stripe": "^8.0.416",
     "cors": "^2.8.5",

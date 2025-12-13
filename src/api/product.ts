@@ -7,11 +7,15 @@ import {
     deleteProductById,
     uploadProductImage,
     getProductsByCategory,
+    getProductsForSearchQuery,
 } from "../application/product";
 import isAuthenticated from "./middleware/authentication-middleware";
 import { isAdmin } from "./middleware/authorization-middleware";
 
 const productRouter = express.Router();
+
+// Search endpoint
+productRouter.get("/search", getProductsForSearchQuery);
 
 productRouter
     .route("/")
