@@ -3,6 +3,7 @@ import util from "util";
 import Order from "../infrastructure/db/entities/Order";
 import stripe from "../infrastructure/stripe";
 import Product from "../infrastructure/db/entities/Product";
+import Cart from "../infrastructure/db/entities/Cart";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
 const FRONTEND_URL = process.env.FRONTEND_URL as string;
@@ -15,73 +16,58 @@ interface Product {
 }
 
 async function fulfillCheckout(sessionId: string) {
-    console.log("Fulfilling Checkout Session " + sessionId);
+    console.log("Fulfilling Checkout Session", sessionId);
 
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ["line_items"],
     });
-    console.log(
-        util.inspect(checkoutSession, false, null, true)
-    );
+    console.log("Payment status:", checkoutSession.payment_status);
 
-    const order = await Order.findById(
-        checkoutSession.metadata?.orderId
-    ).populate<{
-        items: { productId: Product; quantity: number }[];
-    }>("items.productId");
+    if (checkoutSession.payment_status !== "paid") return;
 
-    if (!order) {
-        throw new Error("Order not found");
+    const order = await Order.findById(checkoutSession.metadata?.orderId).populate("items.productId");
+    if (!order) throw new Error("Order not found");
+
+    console.log("Order found:", order._id);
+
+    if (order.paymentStatus !== "PENDING") return;
+
+    for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.productId._id, { $inc: { stock: -item.quantity } });
+        console.log(`Reduced stock of ${item.productId._id} by ${item.quantity}`);
     }
 
-    if (order.paymentStatus !== "PENDING") {
-        throw new Error("Payment is not pending")
-    }
+    await Order.findByIdAndUpdate(order._id, { paymentStatus: "PAID", orderStatus: "FULFILLED" });
+    console.log("Order updated to PAID & FULFILLED");
 
-    if (order.orderStatus !== "PENDING") {
-        throw new Error("Order is not pending");
-    }
-
-
-    if (checkoutSession.payment_status !== "unpaid") {
-        order.items.forEach(async (item) => {
-            const product = item.productId;
-            await Product.findByIdAndUpdate(product._id, {
-                $inc: { stock: -item.quantity },
-            });
-        });
-
-        await Order.findByIdAndUpdate(order._id, {
-            paymentStatus: "PAID",
-            orderStatus: "CONFIRMED",
-        });
-    }
+    const cartUpdate = await Cart.findOneAndUpdate({ userId: order.userId }, { items: [] });
+    console.log("Cart cleared:", cartUpdate);
 }
 
+
 export const handleWebhook = async (req: Request, res: Response) => {
+    console.log("Webhook received"); // <-- test this
     const payload = req.body;
     const sig = req.headers["stripe-signature"] as string;
 
-    let event;
-
     try {
-        event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
+        const event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
+        console.log("Event type:", event.type); // <-- test this
+
         if (
             event.type === "checkout.session.completed" ||
             event.type === "checkout.session.async_payment_succeeded"
         ) {
             await fulfillCheckout(event.data.object.id);
-
-            res.status(200).send();
-            return;
         }
+
+        res.status(200).send();
     } catch (err) {
         // @ts-ignore
+        console.error(err);
         res.status(400).send(`Webhook Error: ${err.message}`);
-        return;
     }
 };
-
 
 export const createCheckoutSession = async (req: Request, res: Response) => {
     const orderId = req.body.orderId;
@@ -132,7 +118,7 @@ export const retrieveSessionStatus = async (req: Request, res: Response) => {
         0
     );
 
-    const shipping = 20;
+    const shipping = 0;
     const total = subtotal + shipping;
 
     res.status(200).json({
