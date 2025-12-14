@@ -45,6 +45,31 @@ async function fulfillCheckout(sessionId: string) {
 }
 
 
+// export const handleWebhook = async (req: Request, res: Response) => {
+//     console.log("Webhook received"); // <-- test this
+//     const payload = req.body;
+//     const sig = req.headers["stripe-signature"] as string;
+
+//     try {
+//         const event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
+//         console.log("Event type:", event.type); // <-- test this
+
+//         if (
+//             event.type === "checkout.session.completed" ||
+//             event.type === "checkout.session.async_payment_succeeded"
+//         ) {
+//             await fulfillCheckout(event.data.object.id);
+//         }
+
+//         res.status(200).send();
+//     } catch (err) {
+//         // @ts-ignore
+//         console.error(err);
+//         res.status(400).send(`Webhook Error: ${err.message}`);
+//     }
+// };
+
+
 export const handleWebhook = async (req: Request, res: Response) => {
     console.log("Webhook received"); // <-- test this
     const payload = req.body;
@@ -63,11 +88,16 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
         res.status(200).send();
     } catch (err) {
-        // @ts-ignore
-        console.error(err);
-        res.status(400).send(`Webhook Error: ${err.message}`);
+        if (err instanceof Error) {
+            console.error(err);
+            res.status(400).send(`Webhook Error: ${err.message}`);
+        } else {
+            console.error("Unknown error", err);
+            res.status(400).send("Webhook Error: Unknown error");
+        }
     }
 };
+
 
 export const createCheckoutSession = async (req: Request, res: Response) => {
     const orderId = req.body.orderId;
@@ -96,6 +126,14 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
 };
 
 
+
+interface IProduct {
+    _id: any;
+    name: string;
+    price: number;
+    images?: string[];
+}
+
 export const retrieveSessionStatus = async (req: Request, res: Response) => {
     const checkoutSession = await stripe.checkout.sessions.retrieve(
         req.query.session_id as string
@@ -106,12 +144,17 @@ export const retrieveSessionStatus = async (req: Request, res: Response) => {
         throw new Error("Order not found");
     }
 
-    const purchasedProducts = order.items.map(item => ({
-        name: item.productId.name,
-        price: item.productId.price,
-        image: item.productId.images?.[0] || "",
-        quantity: item.quantity
-    }))
+    const purchasedProducts = order.items.map(item => {
+        const product = item.productId as unknown as IProduct;
+
+        return {
+            name: product.name,
+            price: product.price,
+            image: product.images?.[0] || "",
+            quantity: item.quantity
+        };
+    });
+
 
     const subtotal = purchasedProducts.reduce(
         (acc, item) => acc + item.price * item.quantity,
@@ -131,3 +174,39 @@ export const retrieveSessionStatus = async (req: Request, res: Response) => {
         totals: { subtotal, shipping, total }
     });
 };
+
+// export const retrieveSessionStatus = async (req: Request, res: Response) => {
+//     const checkoutSession = await stripe.checkout.sessions.retrieve(
+//         req.query.session_id as string
+//     );
+
+//     const order = await Order.findById(checkoutSession.metadata?.orderId).populate("items.productId");
+//     if (!order) {
+//         throw new Error("Order not found");
+//     }
+
+//     const purchasedProducts = order.items.map(item => ({
+//         name: item.productId.name,
+//         price: item.productId.price,
+//         image: item.productId.images?.[0] || "",
+//         quantity: item.quantity
+//     }))
+
+//     const subtotal = purchasedProducts.reduce(
+//         (acc, item) => acc + item.price * item.quantity,
+//         0
+//     );
+
+//     const shipping = 0;
+//     const total = subtotal + shipping;
+
+//     res.status(200).json({
+//         orderId: order._id,
+//         status: checkoutSession.status,
+//         customer_email: checkoutSession.customer_details?.email,
+//         orderStatus: order.orderStatus,
+//         paymentStatus: order.paymentStatus,
+//         purchasedProducts,
+//         totals: { subtotal, shipping, total }
+//     });
+// };

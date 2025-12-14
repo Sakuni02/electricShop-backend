@@ -6,6 +6,7 @@ import UnauthorizedError from "../domain/errors/unauthorized-error";
 import { getAuth } from "@clerk/express";
 import { email } from "zod";
 import { users } from "@clerk/clerk-sdk-node";
+import { Types } from "mongoose";
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -61,42 +62,112 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
     }
 };
 
-const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+interface AddressDoc {
+    _id: Types.ObjectId;
+    line_1: string;
+    line_2?: string;
+    city: string;
+    phone: string;
+}
+
+// const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const orders = await Order.find().populate("addressId")
+//             .populate("items.productId");
+//         const ordersWithUser = await Promise.all(
+//             orders.map(async (order) => {
+//                 let userInfo = { fullName: "N/A", email: "N/A" };
+//                 try {
+//                     const user = await users.getUser(order.userId);
+//                     userInfo = {
+//                         fullName: `${user.firstName} ${user.lastName || ""}`,
+//                         email: user.emailAddresses[0].emailAddress,
+//                     };
+//                 } catch (err) {
+//                     console.log(`Clerk user ${order.userId} not found`);
+
+//                 }
+
+//                 const addressInfo = order.addressId ? {
+//                     line_1: order.addressId.line_1,
+//                     line_2: order.addressId.line_2 || "",
+//                     city: order.addressId.city,
+//                     phone: order.addressId.phone,
+//                 } : null
+
+//                 return {
+//                     ...order.toObject(), user: userInfo,
+//                     address: addressInfo,
+//                 };
+
+//             })
+//         );
+//         res.status(200).json(ordersWithUser);
+//     } catch (err) {
+//         console.log(err);
+//     }
+// };
+
+const getAllOrders = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     try {
-        const orders = await Order.find().populate("addressId")
+        const orders = await Order.find()
+            .populate("addressId")
             .populate("items.productId");
+
         const ordersWithUser = await Promise.all(
             orders.map(async (order) => {
+                // ---- Clerk user ----
                 let userInfo = { fullName: "N/A", email: "N/A" };
+
                 try {
                     const user = await users.getUser(order.userId);
                     userInfo = {
-                        fullName: `${user.firstName} ${user.lastName || ""}`,
-                        email: user.emailAddresses[0].emailAddress,
+                        fullName: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+                        email: user.emailAddresses[0]?.emailAddress ?? "N/A",
                     };
-                } catch (err) {
+                } catch {
                     console.log(`Clerk user ${order.userId} not found`);
-
                 }
 
-                const addressInfo = order.addressId ? {
-                    line_1: order.addressId.line_1,
-                    line_2: order.addressId.line_2 || "",
-                    city: order.addressId.city,
-                    phone: order.addressId.phone,
-                } : null
+                // ---- Address (SAFE populate handling) ----
+                let addressInfo: {
+                    line_1: string;
+                    line_2: string;
+                    city: string;
+                    phone: string;
+                } | null = null;
+
+                if (
+                    order.addressId &&
+                    !(order.addressId instanceof Types.ObjectId)
+                ) {
+                    const address = order.addressId as AddressDoc;
+
+                    addressInfo = {
+                        line_1: address.line_1,
+                        line_2: address.line_2 ?? "",
+                        city: address.city,
+                        phone: address.phone,
+                    };
+                }
 
                 return {
-                    ...order.toObject(), user: userInfo,
+                    ...order.toObject(),
+                    user: userInfo,
                     address: addressInfo,
                 };
-
             })
         );
+
         res.status(200).json(ordersWithUser);
     } catch (err) {
-        console.log(err);
+        next(err);
     }
 };
+
 
 export { createOrder, getOrder, getUserOrders, getAllOrders };

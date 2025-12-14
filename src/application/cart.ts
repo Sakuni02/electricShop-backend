@@ -70,25 +70,48 @@ const updateQuantity = async (req: Request, res: Response, next: NextFunction) =
     }
 };
 
+// const removeItem = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const { userId } = getAuth(req);
+//         const { productId } = req.body;
+
+//         const cart = await Cart.findOne({ userId });
+
+//         if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+//         cart.items = cart.items.filter((i: any) => i.product.toString() !== productId);
+
+//         await cart.save();
+//         const populatedCart = await cart.populate("items.product");
+
+//         res.json(populatedCart);
+//     } catch (err) {
+//         next(err);
+//     }
+// };
+
+
 const removeItem = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { userId } = getAuth(req);
         const { productId } = req.body;
 
         const cart = await Cart.findOne({ userId });
+        if (!cart) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
 
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
-
-        cart.items = cart.items.filter((i: any) => i.product.toString() !== productId);
+        cart.items.pull({ product: productId });
 
         await cart.save();
-        const populatedCart = await cart.populate("items.product");
 
+        const populatedCart = await cart.populate("items.product");
         res.json(populatedCart);
     } catch (err) {
         next(err);
     }
 };
+
 
 export {
     getCart,
