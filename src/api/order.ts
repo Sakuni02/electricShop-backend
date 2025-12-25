@@ -1,5 +1,5 @@
 import express from "express";
-import { createOrder, getAllOrders, getOrder, getUserOrders } from "../application/order";
+import { createOrder, getAllOrders, getOrder, getSalesDashboard, getUserOrders } from "../application/order";
 import isAuthenticated from "./middleware/authentication-middleware";
 
 
@@ -15,3 +15,6 @@ orderRouter.route("/").post(isAuthenticated, createOrder);
 
 // get single order
 orderRouter.route("/:id").get(getOrder);
+
+orderRouter.get("/admin/sales", getSalesDashboard);
+

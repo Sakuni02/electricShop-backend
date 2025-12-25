@@ -115,8 +115,15 @@ const getAllOrders = async (
 ) => {
     try {
         const orders = await Order.find()
-            .populate("addressId")
-            .populate("items.productId");
+            .populate({
+                path: "items.productId",
+                select: "name price images colorId",
+                populate: {
+                    path: "colorId",
+                    select: "name hex",
+                },
+            })
+            .populate("addressId");
 
         const ordersWithUser = await Promise.all(
             orders.map(async (order) => {
@@ -169,5 +176,60 @@ const getAllOrders = async (
     }
 };
 
+const getSalesDashboard = async (req: Request, res: Response, next: NextFunction) => {
+    try {
 
-export { createOrder, getOrder, getUserOrders, getAllOrders };
+        const now = new Date();
+        // Last 7 days
+        const last7Days = new Date();
+        last7Days.setDate(now.getDate() - 7);
+
+        // Last 30 days
+        const last30Days = new Date();
+        last30Days.setDate(now.getDate() - 30);
+
+        // Fetch orders for 30 days (this also covers last 7 days)
+        const orders = await Order.find({
+            createdAt: { $gte: last30Days },
+        }).populate({
+            path: "items.productId",
+            select: "price",
+        });
+
+        let totalSales = 0;
+        let totalOrders = orders.length;
+
+        const dailyOrders7: Record<string, number> = {};
+        const dailyOrders30: Record<string, number> = {};
+
+        orders.forEach((order) => {
+            let orderTotal = 0;
+            order.items.forEach((item: any) => {
+                const price = item.productId?.price ?? 0;
+                orderTotal += price * item.quantity;
+            });
+
+            totalSales += orderTotal;
+            totalOrders += 1;
+
+            const dateKey = order.createdAt.toISOString().split("T")[0];
+            // Add to 30-day data
+            dailyOrders30[dateKey] = (dailyOrders30[dateKey] || 0) + 1;
+            if (order.createdAt >= last7Days) {
+                dailyOrders7[dateKey] = (dailyOrders7[dateKey] || 0) + 1;
+            }
+        });
+
+        const avgOrderValue = totalOrders === 0 ? 0 : totalSales / totalOrders;
+
+        res.status(200).json({
+            totalSales, totalOrders, avgOrderValue, dailyOrders: dailyOrders7, dailyOrders30,
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+export { createOrder, getOrder, getUserOrders, getAllOrders, getSalesDashboard };
